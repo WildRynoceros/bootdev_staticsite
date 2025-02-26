@@ -45,7 +45,7 @@ def text_node_to_html_node(text_node):
 def split_nodes_delimiter(old_nodes, delimiter, text_type):
     final_nodes = []
     def process_node(node, delimiter, text_type):
-        # TODO: Refactor to be regex?
+        # TODO: Refactor to be regex? And handle other text_types if they exist already
         new_nodes = []
         split_text = node.text.split(delimiter)
         for idx, text in enumerate(split_text):
@@ -69,6 +69,7 @@ def extract_markdown_links(text):
     return matches
 
 def process_node_regex(node, pattern, extract_func, text_type):
+    # TODO: Be a bit more proactive if text_type isn't text
     new_nodes = []
     split_text = re.split(pattern, node.text)
     links = extract_func(node.text)
@@ -81,7 +82,7 @@ def process_node_regex(node, pattern, extract_func, text_type):
             continue
         # Handle original text and link if available
         elif len(text) != 0:
-            new_nodes.append(TextNode(text, node.text_type))
+            new_nodes.append(TextNode(text, node.text_type, node.url))
             if link_idx < len(links):
                 new_nodes.append(TextNode(links[link_idx][0], text_type, url=links[link_idx][1]))
                 link_idx += 1
@@ -111,8 +112,68 @@ def text_to_textnodes(text):
     nodes = split_nodes_image(nodes)
     nodes = split_nodes_link(nodes)
     return nodes
+
+def markdown_to_blocks(markdown):
+    blocks = markdown.split('\n\n')
+    if not isinstance(blocks, list):
+        blocks = [markdown]
+    blocks = [block.strip() for block in blocks]
+    return blocks
+
+def block_to_block_type(block):
+    # Headings
+    if block[0] == '#':
+        try:
+            if block[0:block.index(' ') + 1] in [('#' * i) + ' ' for i in range(1, 7)]:
+                return 'HEADING'
+        except ValueError:
+            pass
+    # Code
+    if block[0:3] == '```' and block[-3:] == '```':
+        return 'CODE'
+    # Quote
+    if block[0:2] == '> ':
+        lines = block.splitlines()
+        if all(line[0:2] == '> ' for line in lines):
+            return 'QUOTE'
+    # Unordered list
+    if (block[0:2] == '* ') or (block[0:2] == '- '):
+        lines = block.splitlines()
+        if all((line[0:2] == '* ' or line[0:2] == '- ') for line in lines):
+            return 'UNORDERED_LIST'
+    # Ordered list
+    if block[0:3] == '1. ':
+        lines = block.splitlines()
+        pairs = list(enumerate(lines, start=1))
+        # Why doesn't this conditional break out to the else block?
+        if all(pair[1][0:3] == f'{pair[0]}. ' for pair in pairs):
+            return 'ORDERED_LIST'
+        else:
+            return 'PARAGRAPH'
+    else:
+        return 'PARAGRAPH'
     
+def markdown_to_html_node(markdown):
+    blocks = markdown_to_blocks(markdown)
+    for block in blocks:
+        match block_to_block_type(block):
+            case 'HEADING':
+                pass
+            case 'QUOTE':
+                pass
+            case 'UNORDERED_LIST':
+                pass
+            case 'ORDERED_LIST':
+                pass
+            case 'PARAGRAPH':
+                pass
+
+
 if __name__ == '__main__':
-    text = "This is **text** with an *italic* word and a `code block` and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"
-    nodes = text_to_textnodes(text)
-    print(nodes)
+    text = "# This is a heading\n\nThis is a paragraph of text. It has some **bold** and *italic* words inside of it.\n\n* This is the first list item in a list block\n* This is a list item\n* This is another list item"
+    # text = " and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"
+    blocks = markdown_to_blocks(text)
+    for idx, block in enumerate(blocks, 1):
+        print(f'Block {idx}:')
+        print(block)
+        print()

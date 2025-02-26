@@ -269,8 +269,36 @@ class Test_split_nodes_images(unittest.TestCase):
         self.assertEqual(expected, created)
 
 class Test_text_to_textnodes(unittest.TestCase):
-    # TODO: write this
-    pass
+    text = "This is **text** with an *italic* word and a `code block` and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"
+    def test_text_variety(self):
+        created = text_to_textnodes(Test_text_to_textnodes.text)
+        expected = [
+            TextNode("This is ", TextType.TEXT),
+            TextNode("text", TextType.BOLD),
+            TextNode(" with an ", TextType.TEXT),
+            TextNode("italic", TextType.ITALIC),
+            TextNode(" word and a ", TextType.TEXT),
+            TextNode("code block", TextType.CODE),
+            TextNode(" and an ", TextType.TEXT),
+            TextNode("obi wan image", TextType.IMAGE, "https://i.imgur.com/fJRm4Vk.jpeg"),
+            TextNode(" and a ", TextType.TEXT),
+            TextNode("link", TextType.LINK, "https://boot.dev")
+        ]
+        self.assertEqual(expected, created)
+
+class Test_markdown_to_blocks(unittest.TestCase):
+    single_block = "This is a single block of text"
+    multiple_block = "# This is a heading\n\nThis is a paragraph of text. It has some **bold** and *italic* words inside of it.\n\n* This is the first list item in a list block\n* This is a list item\n* This is another list item"
+
+    def test_single_block(self):
+        created = markdown_to_blocks(Test_markdown_to_blocks.single_block)
+        expected = ['This is a single block of text']
+        self.assertEqual(expected, created)
+
+    def test_multiple_block(self):
+        created = markdown_to_blocks(Test_markdown_to_blocks.multiple_block)
+        expected = ['# This is a heading', 'This is a paragraph of text. It has some **bold** and *italic* words inside of it.', '* This is the first list item in a list block\n* This is a list item\n* This is another list item']
+        self.assertEqual(expected, created)
 
 if __name__ == "__main__":
     unittest.main()
